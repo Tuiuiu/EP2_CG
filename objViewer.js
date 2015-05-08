@@ -6,8 +6,17 @@ var gl;
 
 var numVertices  = 36;
 
-var pointsArray = [];
-var normalsArray = [];
+var pointsArray = [];           
+var normalsArray = [];          
+
+var flatArray = [];             // Arrays auxiliares para salvarmos o valor das normais e as utilizar quando formos
+var argumentArray = [];         // passar de uma técnica de shading para a outra (em tempo de execução)
+var smooth2Array = [];
+
+var functionWasCalled = 0;      // Verifica se já rodamos a função loadObjFile
+
+var centroid;                   // Algumas variáveis que recebem valores de loabObjFile
+var diameter = 2;               
 
 var vertices = [
         vec4( -0.5, -0.5,  0.5, 1.0 ),
@@ -135,10 +144,25 @@ window.onload = function init() {
     document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
     document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
     document.getElementById("ButtonT").onclick = function(){flag = !flag;};
+    document.getElementById("ButtonFlat").onclick = function(){ if (functionWasCalled) { normalsArray = flatArray; createBuffers(); } };
+    document.getElementById("ButtonSmooth1").onclick = function(){ if (functionWasCalled) { normalsArray = argumentArray; createBuffers(); } };
+    document.getElementById("ButtonSmooth2").onclick = function(){ if (functionWasCalled) { normalsArray = smooth2Array; createBuffers(); } };
 
     document.getElementById('files').onchange = function (evt) {
+        var data;
+        var file = evt.target.files[0];         // Seleciona o arquivo recebido pelo botão "Browse"
 
-        // TO DO: load OBJ file and display
+        if(!file) {                             // Se o arquivo não é válido ou não foi carregado
+            alert("Failed to load the file!");
+        } else {                                // Se o arquivo for valido
+            var reader = new FileReader();      // Cria uma nova instância de FileReader 
+            reader.onload = function (evt) {    // Quando o arquivo estiver completamente carregado
+                data = evt.target.result;       // 'data' armazenará o conteúdo da entrada 
+                loadObject(data);
+                createBuffers();
+            }
+            reader.readAsText(file); 
+        }
     };
 
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
@@ -160,6 +184,9 @@ var render = function() {
             
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             
+    var wrapper = document.getElementById("gl-wrapper");           
+    var fixRatio = wrapper.clientHeight/wrapper.clientWidth;
+
     if (flag) theta[axis] += 2.0;
             
     eye = vec3(cradius * Math.sin(ctheta) * Math.cos(cphi),
@@ -168,16 +195,27 @@ var render = function() {
 
     modelViewMatrix = lookAt(eye, at, up);
               
+    modelViewMatrix = mult(modelViewMatrix, scale(vec3(fixRatio,1,1)));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
     modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
     
+
+    if(functionWasCalled) {
+
+        var scl = scale(vec3(2/diameter, 2/diameter, 2/diameter));      // Ajustamos o tamanho do objeto para caber no Canvas
+        modelViewMatrix = mult(modelViewMatrix, scl);
+
+        var trans = translate(-centroid[0],-centroid[1],-centroid[2]);  // Centralizamos o objeto no Canvas
+        modelViewMatrix = mult(modelViewMatrix, trans);    
+    }
+
     projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
 
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+    gl.drawArrays( gl.TRIANGLES, 0, pointsArray.length );
             
     requestAnimFrame(render);
 }
@@ -203,10 +241,14 @@ function createBuffers(points, normals) {
 }
 
 function loadObject(data) {
+    var result = loadObjFile(data);         // Chamamos a função loadObjFile (que parseará a entrada) e salvamos seu resultado em 
+    functionWasCalled = 1;                  // algumas variáveis globais que usaremos para as operações.
+    pointsArray = result[0];
+    argumentArray = result[1];
+    smooth2Array = result[2];
+    centroid = result[3];
+    diameter = result[4];
+    flatArray = result[5];
 
-    // TO DO: convert strings into array of vertex and normal vectors
-    var result = loadObjFile(data);
-
-    // TO DO: apply transformation to the object so that he is centered at the origin
-
+    normalsArray = argumentArray;
 }
