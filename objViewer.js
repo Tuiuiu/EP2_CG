@@ -14,6 +14,10 @@ var argumentArray = [];         // passar de uma técnica de shading para a outr
 var smooth2Array = [];
 
 var functionWasCalled = 0;      // Verifica se já rodamos a função loadObjFile
+var hasNormalsFromFile;
+
+var objectsArray = [];
+var selectedObject = 1;
 
 var centroid;                   // Algumas variáveis que recebem valores de loabObjFile
 var diameter = 2;               
@@ -124,10 +128,10 @@ window.onload = function init() {
     gl.useProgram( program );
     
     // draw simple cube for starters
-    colorCube();
+    //colorCube();
 
     // create vertex and normal buffers
-    createBuffers();
+    //createBuffers();
 
     thetaLoc = gl.getUniformLocation(program, "theta"); 
 
@@ -158,12 +162,29 @@ window.onload = function init() {
             var reader = new FileReader();      // Cria uma nova instância de FileReader 
             reader.onload = function (evt) {    // Quando o arquivo estiver completamente carregado
                 data = evt.target.result;       // 'data' armazenará o conteúdo da entrada 
-                loadObject(data);
-                createBuffers();
+                loadObject(data, objectsArray);
+                render();
+            //  createBuffers();
             }
             reader.readAsText(file); 
         }
     };
+
+    document.addEventListener("keydown", handleOptions(event));
+
+    function handleOptions(event) {
+        switch(event.keyCode) {
+            case: 88 
+                deleteSelectedObject();
+                break;
+            case:             
+
+        }
+
+    }
+
+
+
 
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
        flatten(ambientProduct));
@@ -196,26 +217,52 @@ var render = function() {
     modelViewMatrix = lookAt(eye, at, up);
               
     modelViewMatrix = mult(modelViewMatrix, scale(vec3(fixRatio,1,1)));
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
-    modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
+    
+//  modelViewMatrix = mult(modelViewMatrix, rotate(theta[xAxis], [1, 0, 0] ));
+//  modelViewMatrix = mult(modelViewMatrix, rotate(theta[yAxis], [0, 1, 0] ));
+//  modelViewMatrix = mult(modelViewMatrix, rotate(theta[zAxis], [0, 0, 1] ));
     
 
-    if(functionWasCalled) {
+/*    if(functionWasCalled) {
 
         var scl = scale(vec3(2/diameter, 2/diameter, 2/diameter));      // Ajustamos o tamanho do objeto para caber no Canvas
         modelViewMatrix = mult(modelViewMatrix, scl);
 
         var trans = translate(-centroid[0],-centroid[1],-centroid[2]);  // Centralizamos o objeto no Canvas
         modelViewMatrix = mult(modelViewMatrix, trans);    
-    }
+    } */
 
     projectionMatrix = ortho(xleft, xright, ybottom, ytop, znear, zfar);
 
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-    gl.drawArrays( gl.TRIANGLES, 0, pointsArray.length );
+    for(var i = 0; i < objectsArray.length; i++){
+        if ( i != selectedObject ){
+            objectsArray[i].createObjBuffers();
+            objectsArray[i].drawArrays();
+        }
+        else {
+            materialDiffuse   = vec4( 0.0, 1.0, 0.8, 1.0 );
+            materialSpecular  = vec4( 0.0, 1.0, 0.8, 1.0 );
+            diffuseProduct = mult(lightDiffuse, materialDiffuse);
+            specularProduct = mult(lightSpecular, materialSpecular);
+            gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
+            gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
+
+            objectsArray[i].createObjBuffers();
+            objectsArray[i].drawArrays();
+
+            
+            materialDiffuse   = vec4( 1.0, 0.8, 0.0, 1.0 );
+            materialSpecular  = vec4( 1.0, 0.8, 0.0, 1.0 );
+            diffuseProduct = mult(lightDiffuse, materialDiffuse);
+            specularProduct = mult(lightSpecular, materialSpecular);
+            gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
+            gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
+
+        }
+    }
             
     requestAnimFrame(render);
 }
@@ -240,15 +287,42 @@ function createBuffers(points, normals) {
 
 }
 
-function loadObject(data) {
+function loadObject(data, objects) {
+    var parsedObject;
     var result = loadObjFile(data);         // Chamamos a função loadObjFile (que parseará a entrada) e salvamos seu resultado em 
     functionWasCalled = 1;                  // algumas variáveis globais que usaremos para as operações.
     pointsArray = result[0];
-    argumentArray = result[1];
     smooth2Array = result[2];
     centroid = result[3];
     diameter = result[4];
     flatArray = result[5];
+    if (result[6]) argumentArray = result[1];
+    else argumentArray = flatArray;
 
     normalsArray = argumentArray;
+
+    var trans = translate(-centroid[0],-centroid[1],-centroid[2]);  // Centralizamos o objeto no Canvas
+    
+    for (var i = 0; i < pointsArray.length; i++){
+        pointsArray[i] = multVecMatrix( pointsArray[i], trans );
+    }
+    
+    parsedObject = new Object(pointsArray, flatArray, smooth2Array);
+    objects.push(parsedObject);
+}
+
+
+
+function multVecMatrix( vector, matrix ){
+    var result = vec4(0,0,0,0);
+    var partialSum;
+
+    for (var i = 0; i < matrix.length; i++){
+        partialSum = 0;
+        for (var j = 0; j < vector.length; j++){
+            partialSum = partialSum + vector[j]*matrix[i][j];
+        }
+        result[i] = partialSum;
+    }
+    return result;
 }

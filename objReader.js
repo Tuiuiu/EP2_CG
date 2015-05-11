@@ -15,7 +15,7 @@ function loadObjFile(data) {
 	var faces = [];						// Vetor com a descrição das faces dos objetos recebidos pela entrada
 	var faceVertexes;					// Cada face[i] tera n vértices, ou seja, a linha da face [i] tera n+1 lineElements (o 1º elemento é 'f')
 	
-
+	var hasNormals = 1;
 
 	
 	var vertices = [];					// Vértices na ordem em que devem ser desenhados
@@ -64,17 +64,92 @@ function loadObjFile(data) {
 			vertexNormals.push(vec4(vx,vy,vz,0));												// Insere no vetor de normais
 		} else if ( lineElements[0] == 'f') {
 			faces[fcounter] = [];																// Vetor com as discrições das faces 
-			for ( j = 1; j < lineElements.length; j++) { 										// faces[i] = (i+1)ésima face
-				faceVertexes = lineElements[j].split("/");
-				faces[fcounter].push(parseFloat(faceVertexes[0])); 								// Pega um índice de vértice da definição de face
-				if ( faceVertexes[2] ) { faces[fcounter].push(parseFloat(faceVertexes[2])); }   // Pega um índice de normal da definição de face
-				else { faces[fcounter].push(0); }												// Caso não haja uma normal, adcionamos o índice 0, que indica ausência de normal
+			                                                                                    // faces[i] = (i+1)ésima face
+			faceVertexes = [];
 
-				vertices.push(vertexes[(faceVertexes[0])-1]);
-
-				if (faceVertexes[2] == "") { verticesNormals.push(vec4(0,0,0,0)); }				// Se o .obj não envia uma normal, a substituímos por um vetor vazio.
-				else { verticesNormals.push(vertexNormals[(faceVertexes[2])-1]); }				// Caso seja passada, adcionamos ao vetor de normais.
+			for ( j = 1; j < lineElements.length; j++) { 										
+				faceVertexes[j-1] = lineElements[j].split("/");
 			}
+
+			if(lineElements.length == 4){ /* Se a face possui 3 vértices */
+				faces[fcounter].push(parseFloat(faceVertexes[0][0]));
+				if ( faceVertexes[0][2] ) { faces[fcounter].push(parseFloat(faceVertexes[0][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[0][0])-1]);
+				if (faceVertexes[0][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[0][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[1][0]));
+				if ( faceVertexes[1][2] ) { faces[fcounter].push(parseFloat(faceVertexes[1][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[1][0])-1]);
+				if (faceVertexes[1][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[1][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[2][0]));
+				if ( faceVertexes[2][2] ) { faces[fcounter].push(parseFloat(faceVertexes[2][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[2][0])-1]);
+				if (faceVertexes[2][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[2][2])-1]); }
+
+			} 
+			else if(lineElements.length == 5){  /* Se a face possui 4 vértices */
+				faces[fcounter].push(parseFloat(faceVertexes[0][0]));
+				if ( faceVertexes[0][2] ) { faces[fcounter].push(parseFloat(faceVertexes[0][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[0][0])-1]);
+				if (faceVertexes[0][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[0][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[1][0]));
+				if ( faceVertexes[1][2] ) { faces[fcounter].push(parseFloat(faceVertexes[1][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[1][0])-1]);
+				if (faceVertexes[1][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[1][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[2][0]));
+				if ( faceVertexes[2][2] ) { faces[fcounter].push(parseFloat(faceVertexes[2][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[2][0])-1]);
+				if (faceVertexes[2][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[2][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[0][0]));
+				if ( faceVertexes[0][2] ) { faces[fcounter].push(parseFloat(faceVertexes[0][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[0][0])-1]);
+				if (faceVertexes[0][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[0][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[2][0]));
+				if ( faceVertexes[2][2] ) { faces[fcounter].push(parseFloat(faceVertexes[2][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[2][0])-1]);
+				if (faceVertexes[2][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[2][2])-1]); }
+
+				faces[fcounter].push(parseFloat(faceVertexes[3][0]));
+				if ( faceVertexes[3][2] ) { faces[fcounter].push(parseFloat(faceVertexes[3][2])); }
+				else { faces[fcounter].push(0); hasNormals = 0; }
+				vertices.push(vertexes[(faceVertexes[3][0])-1]);
+				if (faceVertexes[3][2] == "") { verticesNormals.push(vec4(0,0,0,0)); }
+				else { verticesNormals.push(vertexNormals[(faceVertexes[3][2])-1]); }
+			}
+
+//			for ( j = 1; j < lineElements.length; j++) { 										
+//				faceVertexes[j-1] = lineElements[j].split("/");
+
+//				faces[fcounter].push(parseFloat(faceVertexes[0])); 								// Pega um índice de vértice da definição de face
+//				if ( faceVertexes[2] ) { faces[fcounter].push(parseFloat(faceVertexes[2])); }   // Pega um índice de normal da definição de face
+//				else { faces[fcounter].push(0); hasNormals = 0; }								// Caso não haja uma normal, adcionamos o índice 0, que indica ausência de normal
+//
+//				vertices.push(vertexes[(faceVertexes[0])-1]);
+//
+//				if (faceVertexes[2] == "") { verticesNormals.push(vec4(0,0,0,0)); }				// Se o .obj não envia uma normal, a substituímos por um vetor vazio.
+//				else { verticesNormals.push(vertexNormals[(faceVertexes[2])-1]); }				// Caso seja passada, adcionamos ao vetor de normais.
+//			}
 
 			fcounter++;
 		}
@@ -103,5 +178,5 @@ function loadObjFile(data) {
 		}																			// pois ela será normalizada antes de ser utilizada pela renderização
 	}
 
-	return [vertices, verticesNormals, smooth2Normals, centroide, diametro, flatNormals];
+	return [vertices, verticesNormals, smooth2Normals, centroide, diametro, flatNormals, hasNormals];
 }
