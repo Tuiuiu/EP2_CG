@@ -4,20 +4,25 @@ var program;
 var canvas;
 var gl;
 
-var numVertices  = 36;
+var numVertices   = 36;
 
-var pointsArray = [];           
-var normalsArray = [];          
+var pointsArray   = [];           
+var normalsArray  = [];          
 
-var flatArray = [];             // Arrays auxiliares para salvarmos o valor das normais e as utilizar quando formos
+var flatArray     = [];         // Arrays auxiliares para salvarmos o valor das normais e as utilizar quando formos
 var argumentArray = [];         // passar de uma técnica de shading para a outra (em tempo de execução)
-var smooth2Array = [];
+var smooth2Array  = [];
 
 var functionWasCalled = 0;      // Verifica se já rodamos a função loadObjFile
 var hasNormalsFromFile;
 
-var objectsArray = [];
+var objectsArray   = [];
 var selectedObject = 1;
+var transformation = 'N';
+var direction      = 'N';
+
+var xCursor, yCursor, xCursorFinal, yCursorFinal;
+var cursorIsPressed = 0;
 
 var centroid;                   // Algumas variáveis que recebem valores de loabObjFile
 var diameter = 2;               
@@ -152,6 +157,7 @@ window.onload = function init() {
     document.getElementById("ButtonSmooth1").onclick = function(){ if (functionWasCalled) { normalsArray = argumentArray; createBuffers(); } };
     document.getElementById("ButtonSmooth2").onclick = function(){ if (functionWasCalled) { normalsArray = smooth2Array; createBuffers(); } };
 
+
     document.getElementById('files').onchange = function (evt) {
         var data;
         var file = evt.target.files[0];         // Seleciona o arquivo recebido pelo botão "Browse"
@@ -170,19 +176,96 @@ window.onload = function init() {
         }
     };
 
-    document.addEventListener("keydown", handleOptions(event));
+    document.getElementById("gl-canvas").addEventListener("mousedown", function handleMouseDown(event){
+        if(transformation != 'N' && direction != 'N'){
+            cursorIsPressed = 1;
+            xCursor = event.clientX;
+            yCursor = event.clientY;
+            console.log("x = " + xCursor + " y = " + yCursor);
+        } 
+    }, false);
 
-    function handleOptions(event) {
+    window.addEventListener("mouseup", function handleMouseUp(event){
+        if(transformation != 'N' && direction != 'N' && cursorIsPressed){
+            cursorIsPressed = 0;
+            xCursorFinal = event.clientX;
+            yCursorFinal = event.clientY;
+            var cursorMovement = (yCursorFinal - yCursor)/1000;
+
+            console.log("movement = "+ cursorMovement);
+            if(transformation == 'T'){
+                translateSelectedObject(cursorMovement, direction);
+            }
+
+            console.log("BLA x = " + xCursorFinal + " y = " + yCursorFinal);
+        } 
+    }, false);
+
+    window.addEventListener("keydown", function handleKeyboardOptions(event){
         switch(event.keyCode) {
-            case: 88 
-                deleteSelectedObject();
+            case 46: // Tecla Delete
+                if(transformation == 'N'){
+                    deleteSelectedObject();
+                }
+            case 88: // Tecla X
+                if(transformation == 'N'){
+                    deleteSelectedObject();
+                }
+                else direction = 'X';
                 break;
-            case:             
+            case 89: // Tecla Y
+                if(transformation != 'N'){
+                    direction = 'Y';
+                } break;
+            case 90: // Tecla Z
+                if(transformation != 'N'){    
+                    direction = 'Z';
+                } break;
+            case 84: // Tecla T
+                if(transformation == 'N'){ 
+                    transformation = 'T';
+                }
+                break;
+            case 82: // Tecla R
+                selectedObject = (selectedObject + 1)%objectsArray.length;
+                if(transformation == 'N'){
+                    transformation = 'R';
+                 //   rotateSelectedObject();
+                } transformation = 'N';
+                break;
+            case 83: // Tecla S
+                if(transformation == 'N'){
+                    transformation = 'S';
+                   // scaleSelectedObject();
+                }
+                break;
+            case 27: // Tecla Esc
+                transformation = 'N';
+                direction = 'N';
+                selectedObject = -1;
+        }
+    }, false); 
 
+    function deleteSelectedObject() {
+        objectsArray.splice(selectedObject, 1); // Remove 1 elemento no índice 'selectedObject',
+    }                                           // o que corresponde ao objeto selecionado no array de objetos.
+                            
+    function translateSelectedObject(distance, axis){
+        var transMatrix;
+        if(axis == 'X'){
+            transMatrix = translate( distance, 0, 0 );
+        }
+        else if(axis == 'Y'){
+            transMatrix = translate( 0, distance, 0 );
+        }
+        else if(axis == 'Z'){
+            transMatrix = translate( 0, 0, distance );
         }
 
+        for (var i = 0; i < objectsArray[selectedObject].objVertexes.length; i++){
+            objectsArray[selectedObject].objVertexes[i] = multVecMatrix(objectsArray[selectedObject].objVertexes[i], transMatrix);
+        }
     }
-
 
 
 
@@ -313,14 +396,14 @@ function loadObject(data, objects) {
 
 
 
-function multVecMatrix( vector, matrix ){
+function multVecMatrix( vectorArgs, matrixArgs ){
     var result = vec4(0,0,0,0);
     var partialSum;
 
-    for (var i = 0; i < matrix.length; i++){
+    for (var i = 0; i < matrixArgs.length; i++){
         partialSum = 0;
-        for (var j = 0; j < vector.length; j++){
-            partialSum = partialSum + vector[j]*matrix[i][j];
+        for (var j = 0; j < vectorArgs.length; j++){
+            partialSum = partialSum + vectorArgs[j]*matrixArgs[i][j];
         }
         result[i] = partialSum;
     }
